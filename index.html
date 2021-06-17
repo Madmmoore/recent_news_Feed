@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html class="app">
+    <head>
+        <title>Top 3 News Articles</title>
+        <link rel="stylesheet" type="text/css" href="styles.css">
+        <script>
+
+            var page = 1;
+            var size = 50;
+
+            function expand(e){
+                const target = e.currentTarget;
+                const friend = Array.from(target.parentNode.childNodes).find(x => x.attributes.class.value === "news_snippet--shrunk" || x.attributes.class.value === "news_snippet--expanded")
+                if (friend != null && friend.attributes.class.value === "news_snippet--shrunk") {
+                    friend.attributes.class.value = "news_snippet--expanded";
+                    target.innerHTML = `Less <i class="arrow up"></i>`;
+                } else {
+                    friend.attributes.class.value = "news_snippet--shrunk";
+                    target.innerHTML = `More <i class="arrow down"></i>`;
+                }
+            }
+
+            function formatDate(date) {
+                var d = new Date(date),
+                    month = '' + (d.getMonth() + 1),
+                    day = '' + d.getDate(),
+                    year = d.getFullYear();
+
+                if (month.length < 2) 
+                    month = '0' + month;
+                if (day.length < 2) 
+                    day = '0' + day;
+
+                return [year, month, day].join('-');
+            }
+
+            function loadMore(){
+                page += 1;
+                loadTrending();
+            }
+            
+            async function loadTrending() {
+                const loadingDiv = document.createElement('div');
+                const buttonWrapper = document.getElementById('button_wrapper');
+                loadingDiv.innerText = "loading...";
+                loadingDiv.setAttribute('id', 'loading');
+                buttonWrapper.prepend(loadingDiv);
+                return fetch(`https://contextualwebsearch-websearch-v1.p.rapidapi.com/api/search/TrendingNewsAPI?pageNumber=${page}&pageSize=${size}&withThumbnails=false&location=us`, {
+                    "method": "GET",
+                    "headers": {
+                        "x-rapidapi-key": "e7646a88ffmsh68caeac075475dep175a8cjsn05e0cd391999",
+                        "x-rapidapi-host": "contextualwebsearch-websearch-v1.p.rapidapi.com"
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const articles = data.value;
+                    const element = document.getElementById('news_List');
+                    var leftCol = document.getElementsByClassName("news_left_col")[0];
+                    var rightCol = document.getElementsByClassName("news_right_col")[0];
+                    if (!leftCol) {
+                        leftCol = document.createElement("div")
+                    }
+                    if (!rightCol) {
+                        rightCol = document.createElement("div")
+                    }
+                    document.getElementById('loading').remove();
+                    leftCol.setAttribute("class", "news_left_col");
+                    rightCol.setAttribute("class", "news_right_col");
+                    element.appendChild(leftCol);
+                    element.appendChild(rightCol);
+                    if (articles && articles.length > 0){
+                        articles.forEach((art, i) => {
+
+                            const div = document.createElement("div");
+                            const img = document.createElement("img");
+                            const aimg = document.createElement("a");
+                            const a = document.createElement("a");
+                            const snippet = document.createElement("div");
+                            const moreDiv = document.createElement("div");
+                            const source = document.createElement("div");
+                            const date = document.createElement("div");
+
+                            img.src = art.image.url;
+                            aimg.setAttribute('class', "news_image");
+                            aimg.href = art.url;
+                            aimg.target = "_blank"
+                            aimg.setAttribute('class', "news_image_a");
+                            snippet.innerText = art.body.trim();
+                            snippet.setAttribute('class', "news_snippet--shrunk");
+                            moreDiv.addEventListener('click', expand, false);
+                            moreDiv.setAttribute('class', 'news_expand');
+                            moreDiv.innerHTML = `More <i class="arrow down"></i>`;
+                            a.innerText = art.title;
+                            a.href = "https://nypost.com/2021/06/15/letters-to-the-editor-june-16-2021/";
+                            a.target = "_blank";
+                            a.setAttribute('class', "news_title");
+                            div.setAttribute('class', "news_story");
+                            source.innerText = art.provider.name;
+                            source.setAttribute('class', "news_source");
+                            date.innerText = formatDate(new Date(art.datePublished).toLocaleString());
+                            date.setAttribute('class', "news_date");
+
+                            aimg.appendChild(img)
+                            div.appendChild(source);
+                            div.appendChild(date);
+                            div.appendChild(a);
+                            div.appendChild(snippet);
+                            div.appendChild(moreDiv);
+                            div.appendChild(aimg);
+
+                            if (i % 2 == 0) {
+                                rightCol.appendChild(div);
+                            }
+                            else {
+                                leftCol.appendChild(div);
+                            }
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                });
+            }
+            window.onload = loadTrending;
+        </script>
+    </head>
+    <body class="body">
+        <div class="site_banner">
+            Recent News Feed
+        </div>
+        <div id="news_List"></div>
+        <div id="button_wrapper">
+            <button onclick="loadMore()" class="btn">Load More</button>
+        </div>
+    </body>
+</html>
